@@ -1,0 +1,309 @@
+---
+title: "IPL performance and salary analysis report"
+author: "AKASH DAS , MDS202206"
+date: "2022-10-28"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## INTRODUCTION
+My project contains 4 parts:  
+
+ 1. Team wise performance analysis
+ 2. Individual player wise performance analysis
+ 3. Salary wise analysis
+ 4. Star player analysis
+
+## ABOUT THE DATA SET
+
+I am working with 2 datasets, which are:
+
+#### 1. IPL (2008 -2019) Dataset
+#### 2. IPL Player Performance and Salary Dataset
+
+IPL (2008 -2019) Dataset contains 2 csv files:
+i.deleveries.csv: it contains all the delivery-wise data of all the matches - match id, inning, batting team, bowling team, over number, batsman name,non-striker batsman name, bowler name, runs in that delivery, wickets fallen in that delivery, and the winner of that match.
+
+ii.matches.csv: it contains all the match-wise data of all the matches - id,season,date,team 1, team 2, toss winner, toss decision,result,win by runs,win by wickets,venue,player of the match,umpires
+
+## WORKING VARIABLES
+
+
+```{r echo=FALSE , results='asis'}
+
+df=data.frame(Variable_Name = c("batting_team","bowling_team","batsman","bowler","total_runs","batsman_runs","season","toss_decision","player_of_match"),
+                 Variable_Type = c("Categorical (Nominal)","Categorical (Nominal)","Categorical (Nominal)","Categorical (Nominal)","Numeric(Discrete)","Numeric(Discrete)","Numeric(Discrete)","Categorical (Binary)","Categorical (Nominal)"),
+                 Variable_Description=c("batsman's team name","bowler's team name","on strike batsman name","bowler name","runs scored by batting team","runs scored by the batsman","IPL season number","bat/field","best player of the match"))
+
+knitr::kable(df)
+```
+<br />
+2. IPL Player Performance and Salary Dataset contains 1 csv file:
+salary.csv: it contains all the IPL season wise data of all the players - id, name,year,final price,role,nationality,team,Ent,age,matches,runs,High Score,Ave,Strike Rate,fifties,hundreds,fours,sixes,catches,stumps,wickets,economy,four wickets,five wickets,Indian,specialist,status.
+
+## WORKING VARIABLES
+
+```{r echo=FALSE , results='asis'}
+
+df=data.frame(Variable_Name = c("Name","Year","Final Price","Team","Runs","StrRate","Fifties","Hundreds","Fours","Sixes","Wkts","FourWkts","FiveWkts"),
+                 Variable_Type = c("Categorical (Nominal)","Numeric(Discrete)","Numeric(Continuous)","Categorical (Nominal)","Numeric(Discrete)","Numeric(Continuous)","Numeric(Discrete)","Numeric(Discrete)","Numeric(Discrete)","Numeric(Discrete)","Numeric(Discrete)","Numeric(Discrete)","Numeric(Discrete)"),Variable_Description=c("Player name","IPL season year","Player's auction price of that season","Player's IPL team name","Runs scored by player","Strike rate=(total run scored/total balls played )*100","No. of 50's scored by the player","No. of 100's scored by the player","No. of 4's scored by the player","No. of 6's scored by the player","No. of wickets taken by the player","No. of times 4 wickets haul taken by the player","No. of times 5 wickets haul taken by the player"))
+
+knitr::kable(df)
+```
+## THE OBJECTIVE OF THE PROJECT
+
+1. Team wise performance analysis:
+
+   -  Which team preferred batting or fielding after winning the tosses in IPL ?
+   -  Which team scored how many boundaries,over-boundaries,centuries and half-centuries in IPL ?
+   -  Which team took how many 4-wicket hauls and 5-wicket hauls in IPL?
+
+2. Individual player wise performance analysis:
+
+   -  Performance analysis of player against other teams.
+   -  Innings wise performance analysis of player.
+   -  Performance analysis of player against the players he played most number of times.
+
+3. Salary wise analysis:
+
+   -  Which players are receiving huge amount of money but performs not so good ?
+   -  Which players are receiving low amount of money but performs well ?
+
+4. Star player analysis:
+    
+   -  Which players received player of the match award most number of times?
+   -  Highest run scorers.
+   -  Highest wicket tackers.
+
+
+## ANALYSIS
+
+### 1. Team wise performance analysis:
+
+### 1.i>  Which team preferred batting or fielding after winning the tosses in IPL ?
+
+
+```{r, echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(dplyr)
+library(ggplot2)
+library(here)
+
+mat=read.csv(file="C:/Users/USER/Desktop/visu_pro/matches2.csv")
+salary=read.csv(file="C:/Users/USER/Desktop/visu_pro/salary.csv")
+del=read.csv(file="C:/Users/USER/Desktop/visu_pro/deliveries2.csv")
+mat=mat[(mat$season>2007 & mat$season<2018),]
+
+toss_stat=mat%>%
+  group_by(toss_winner) %>% 
+  summarise(freq=n(),toss_decision=toss_decision)
+toss_stat=toss_stat[(toss_stat$freq>25),]
+
+ggplot(toss_stat,aes(x=toss_winner,fill=toss_decision))+geom_bar(position = "dodge")+theme(axis.text.x=element_text(angle=90,hjust=1))+labs(y="Toss_Decision_Frequency",x="Team Names",title = "Post Toss Decision(Bat/Field) BY Different Teams",subtitle = "IPL Season : 2008-2017")
+
+
+```
+
+### 1.ii> Which team scored how many boundaries,over-boundaries,centuries and half-centuries in IPL ?
+
+```{r, echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+library(treemapify)
+
+team_stat=salary %>%
+  group_by(Team) %>% 
+  summarise(fours=sum(Fours),sixes=sum(Sixes),four_wkt=sum(FourWkts),five_wkt=sum(FiveWkts),centuries=sum(Hundreds),halfcenturies=sum(Fifties),matches=n())
+team_stat=team_stat[(team_stat$matches>50),]
+
+
+team_stat=salary %>%
+  group_by(Team) %>% 
+  summarise(fours=sum(Fours),sixes=sum(Sixes),four_wkt=sum(FourWkts),five_wkt=sum(FiveWkts),centuries=sum(Hundreds),halfcenturies=sum(Fifties),matches=n())
+team_stat=team_stat[(team_stat$matches>50),]
+
+ggplot(team_stat, aes(x = "", y = fours, fill = Team)) +
+  geom_col(color = "black") +
+  coord_polar(theta = "y")+geom_text(aes(label = fours),position = position_stack(vjust = 0.5)) +
+  guides(fill = guide_legend(title = "Team")) +
+  theme_void()+labs(title = "Total NO. Of Boundaries Scored BY Different Teams",subtitle = "IPL Season : 2008-2017")
+
+```
+
+
+
+#### Total NO. Of Over-Boundaries Scored BY Different Teams will be represented by similler kind of pie diagram in the project.
+
+
+```{r, echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+
+ggplot(team_stat, aes(area = halfcenturies, fill = Team,
+                      label = paste(Team,halfcenturies , sep = "\n"))) +
+  geom_treemap() +
+  geom_treemap_text(colour = "white",
+                    place = "centre",
+                    size = 15) +
+  theme(legend.position = "none")+labs(title = "Total NO. Of Half-Centuries Scored BY Different Teams",subtitle = "IPL Season : 2008-2017")
+
+```
+
+
+#### Total NO. Of Centuries Scored BY Different Teams will be represented by similler kind of treemap  diagram in the project.
+
+
+### 1.iii> Which team took how many 4-wicket hauls and 5-wicket hauls in IPL?
+
+```{r}
+ggplot(team_stat, aes(x = "", y = four_wkt, fill = Team)) +
+  geom_col(color = "black") +
+  coord_polar(theta = "y")+geom_text(aes(label = four_wkt),position = position_stack(vjust = 0.5)) +
+  guides(fill = guide_legend(title = "Team")) +
+  theme_void()+labs(title = "Total NO. Of Four Wicket Hauls Taken BY Different Teams",subtitle = "IPL Season : 2008-2017")
+
+```
+ 
+
+#### Total NO. Of Five Wicket Hauls Taken BY Different Teams will be represented by similler kind of pie diagram in the project.
+
+
+### 2. Individual player wise performance analysis:(In this report we only consider one player's performance as an example of original project)
+### we choose MS Dhoni to analys a batsman's performance in IPL
+
+#### 2.i>  Performance analysis of player against other teams.
+   
+```{r, echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+ms=del[(del$batsman=="MS Dhoni"),]
+ms3=ms %>% 
+  group_by(bowling_team)%>% 
+  summarise(tot_run=sum(batsman_runs),balls_played=n())%>%
+  arrange(-balls_played)
+ms3=ms3[(ms3$balls_played>100),]
+ms3$strike_rate=ms3$tot_run/ms3$balls_played*100
+ggplot(ms3,aes(reorder(bowling_team,-tot_run),tot_run,fill=bowling_team))+geom_col(position = "dodge")+theme(legend.position = "none")+theme(axis.text.x=element_text(angle=90,hjust=1))+labs(x="Opponent Teams",y="Runs Scored",title = "Runs Scored By MS Dhoni Against Different Teams",subtitle = "IPL Season : 2008-2017")
+
+ggplot(ms3,aes(reorder(bowling_team,-strike_rate),strike_rate,fill=bowling_team))+geom_col(position = "dodge")+theme(legend.position = "none")+theme(axis.text.x=element_text(angle=90,hjust=1))+labs(x="Opponent Teams",y="Strike Rate",title = "MS Dhoni's Strike Rate Against Different Teams",subtitle = "IPL Season : 2008-2017")
+
+```
+ 
+#### 2.ii>  Innings wise performance analysis of player.
+ 
+```{r, echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+
+ms_inn=ms%>%
+  group_by(inning) %>% 
+  summarise(runs=sum(batsman_runs))
+ms_inn$innings=c("1st_innings","2nd_innings")
+
+ggplot(ms_inn, aes(x = 3, y = runs, fill = innings)) +
+  geom_col(color = "black") +
+  geom_text(aes(label = runs),
+            position = position_stack(vjust = 0.5)) +
+  coord_polar(theta = "y") +
+  scale_fill_brewer(palette = "GnBu") +
+  xlim(c(0.2, 3 + 0.5)) +
+  theme(panel.background = element_rect(fill = "white"),
+        panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank())+labs(title = "Runs Scored By MS Dhoni In Different Innings",subtitle = "IPL Season : 2008-2017")
+```
+
+ 
+#### 2.iii>  Performance analysis of player against the players he played most number of times.
+
+
+```{r  echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+ms=del[(del$batsman=="MS Dhoni"),]
+ms2=ms %>% 
+  group_by(bowler)%>% 
+  summarise(tot_run=sum(batsman_runs),balls_played=n())%>%
+  arrange(-balls_played)
+ms2=ms2[c(1:20),]
+ms2$strike_rate=ms2$tot_run/ms2$balls_played*100
+ggplot(ms2,aes(reorder(bowler,-tot_run),tot_run,fill=bowler))+geom_col(position = "dodge")+theme(legend.position = "none")+theme(axis.text.x=element_text(angle=90,hjust=1))+labs(x="Bowler Names",y="Runs Scored",title = "Runs Scored By MS Dhoni Against Different Bowlers He Played Most No. Of Times",subtitle = "IPL Season : 2008-2017")
+
+ggplot(ms2,aes(strike_rate,tot_run))+geom_point()+geom_text(aes(label=bowler),hjust=1, vjust=1,cex=3)+geom_hline(yintercept =80)+geom_vline(xintercept =120)+labs(x="Strike Rate",y="Runs Scored",title = "MS Dhoni Vs. Different Bowlers He Played Most No. Of Times",subtitle = "IPL Season : 2008-2017")
+
+```
+
+#### Same strategy can be used to analyse the individual perofromance of any bowler.
+ 
+### 3. Salary wise analysis:
+
+#### 3.i> Which batsman is most profitable for his team  ?
+
+```{r}
+
+
+sal=salary %>%
+  group_by(Name) %>% 
+  summarise(run=sum(Runs),money=sum(Final.Price),money_per_run=sum(Runs)/sum(Final.Price)*100000) %>%
+  arrange( -money_per_run)
+
+
+sal=sal[(sal$run > 2000),]
+
+ggplot(sal,aes(money_per_run,reorder(Name, money_per_run),fill=Name))+geom_col()+theme(legend.position = "none")+labs(x="Money Per Run(*100000)",y="Batsman Names",title = "Money Per Run of Different Batsman",subtitle = "(minimum 2000 balls played),IPL:2008-2017")
+```
+ 
+#### 3.ii>   Which bowler is most profitable for his team ?
+
+
+#### Who are the most profitable bowlers for his team will be represented by similler kind of bar diagram in the project.
+ 
+### 4. Star player analysis:
+    
+#### 4.i>  Which players received player of the match award most number of times?
+```{r}
+mat_pom=mat %>% 
+  group_by(player_of_match)%>% 
+  summarise(freq=n())%>%
+  arrange(-freq)
+mat_pom1=mat_pom[(mat_pom$freq>9),]
+ggplot(mat_pom1,aes(freq,reorder(player_of_match,freq),fill=player_of_match))+geom_col()+theme(legend.position = "none")+labs(x="No. Of Times Player Of The Match Awards Received",y="Player Names",title = "Player Of The Match Awards Received By Different Players ",subtitle = "(minimum 10 awards),IPL Season : 2008-2017")
+```
+   
+#### 4.ii> Highest run scorers.
+   
+   
+   
+```{r}
+bm=del %>% 
+  group_by(batsman)%>% 
+  summarise(tot_run=sum(batsman_runs),balls_played=n())
+bm1=bm[(bm$balls_played>2000),]
+ggplot(bm1,aes(fill=batsman,tot_run,reorder(batsman,tot_run)))+geom_col()+theme(legend.position = "none")+labs(x="Total Of Runs Scored",y="Batsman Names",title = "Total Runs Scored By Different Players ",subtitle = "(minimum 2000 runs),IPL Season : 2008-2017")
+```
+   
+#### 4.iii>  Highest wicket tackers.
+
+#### Same strategy can be used to visualize the Highest wicket bowlers
+
+
+## CONCLUSION:
+   
+   In this report I have shown the team performances ,salary wise performance, who are the star players in IPL and individual player's performance analysis of a player as an example.However in the main project I will analyse performance of every player using R-Shinny web app.
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
